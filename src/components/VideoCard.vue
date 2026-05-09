@@ -68,6 +68,21 @@ function createPlayer(url) {
     },
   })
 
+  art.on('video:loadeddata', () => {
+    if (art.poster) return
+    try {
+      const canvas = document.createElement('canvas')
+      const vw = art.video.videoWidth
+      const vh = art.video.videoHeight
+      if (!vw || !vh) return
+      const scale = Math.min(320 / vw, 180 / vh, 1)
+      canvas.width = vw * scale
+      canvas.height = vh * scale
+      canvas.getContext('2d').drawImage(art.video, 0, 0, canvas.width, canvas.height)
+      art.poster = canvas.toDataURL('image/jpeg', 0.6)
+    } catch {}
+  })
+
   art.on('video:ended', () => {
     emit('ended')
   })
