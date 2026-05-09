@@ -18,6 +18,8 @@ Artplayer.MOBILE_CLICK_PLAY = true
 Artplayer.MOBILE_DBCLICK_PLAY = true
 Artplayer.REMOVE_SRC_WHEN_DESTROY = true
 
+let userInteracted = false
+
 const props = defineProps({
   video: { type: Object, required: true },
   index: { type: Number, required: true },
@@ -42,7 +44,7 @@ function createPlayer(url) {
     container: artRef.value,
     url,
     autoplay: props.active,
-    muted: true,
+    muted: !userInteracted,
     loop: true,
     playsInline: true,
     mutex: true,
@@ -69,10 +71,16 @@ function createPlayer(url) {
   })
 
   art.on('click', () => {
-    if (art.muted) art.muted = false
+    if (!userInteracted) {
+      userInteracted = true
+      art.muted = false
+    }
   })
   art.on('dblclick', () => {
-    if (art.muted) art.muted = false
+    if (!userInteracted) {
+      userInteracted = true
+      art.muted = false
+    }
   })
 }
 
@@ -114,14 +122,12 @@ defineExpose({ art })
 
 .art-container {
   width: 100%;
-  height: 100%;
+  height: calc(100% - 56px);
 }
 
 .art-container :deep(.art-video-player) {
   width: 100%;
   height: 100%;
-  padding-bottom: 56px;
-  box-sizing: border-box;
 }
 
 .art-container :deep(.art-video) {
