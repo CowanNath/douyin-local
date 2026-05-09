@@ -99,6 +99,7 @@ watch(() => props.active, (val) => {
   if (!art || art.isDestroy) return
   if (val) {
     art.play()
+    if (userInteracted) art.muted = false
   } else {
     art.pause()
   }
@@ -122,7 +123,7 @@ defineExpose({ art })
 
 .art-container {
   width: 100%;
-  height: calc(100% - 56px);
+  height: calc(100% - 65px);
 }
 
 .art-container :deep(.art-video-player) {
