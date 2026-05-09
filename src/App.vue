@@ -23,9 +23,8 @@ const feedRef = ref(null)
 <style scoped>
 .settings-trigger {
   position: fixed;
-  top: env(safe-area-inset-top, 12px);
+  top: calc(env(safe-area-inset-top, 12px) + 12px);
   left: 16px;
-  margin-top: 12px;
   background: rgba(0, 0, 0, 0.4);
   border: none;
   border-radius: 50%;

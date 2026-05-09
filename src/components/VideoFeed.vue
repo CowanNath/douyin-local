@@ -175,6 +175,7 @@ defineExpose({ next, prev, goTo, fetchVideos })
   left: 0;
   width: 100%;
   height: 100vh;
+  height: 100dvh;
   overflow: hidden;
   background: #000;
   touch-action: pan-y;
@@ -188,6 +189,7 @@ defineExpose({ next, prev, goTo, fetchVideos })
 .feed-track > * {
   width: 100%;
   height: 100vh;
+  height: 100dvh;
 }
 
 .empty-state,
@@ -222,9 +224,8 @@ defineExpose({ next, prev, goTo, fetchVideos })
 
 .counter {
   position: absolute;
-  top: env(safe-area-inset-top, 12px);
+  top: calc(env(safe-area-inset-top, 12px) + 12px);
   right: 16px;
-  margin-top: 12px;
   padding: 4px 10px;
   background: rgba(0, 0, 0, 0.5);
   border-radius: 12px;

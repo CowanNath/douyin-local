@@ -113,6 +113,9 @@ defineExpose({ art })
 .art-container :deep(.art-video-player) {
   width: 100%;
   height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .art-container :deep(.art-video) {
@@ -121,10 +124,24 @@ defineExpose({ art })
   height: 100%;
 }
 
+.art-container :deep(.art-center) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.art-container :deep(.art-bottom) {
+  bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.art-container :deep(.art-controls) {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
 .overlay-right {
   position: absolute;
   right: 12px;
-  bottom: 100px;
+  bottom: calc(80px + env(safe-area-inset-bottom, 0px));
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -135,7 +152,7 @@ defineExpose({ art })
 .video-title {
   position: absolute;
   left: 16px;
-  bottom: 20px;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
   right: 70px;
   color: #fff;
   font-size: 14px;
