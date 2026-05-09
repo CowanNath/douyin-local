@@ -121,6 +121,14 @@ defineExpose({ art })
   height: 100%;
 }
 
+.art-container :deep(.art-bottom) {
+  bottom: 56px;
+}
+
+.art-container :deep(.art-controls) {
+  padding-bottom: 4px;
+}
+
 .overlay-right {
   position: absolute;
   right: 12px;
