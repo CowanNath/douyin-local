@@ -67,6 +67,13 @@ function createPlayer(url) {
       'x5-video-player-fullscreen': false,
     },
   })
+
+  art.on('click', () => {
+    if (art.muted) art.muted = false
+  })
+  art.on('dblclick', () => {
+    if (art.muted) art.muted = false
+  })
 }
 
 onMounted(() => {
@@ -113,20 +120,14 @@ defineExpose({ art })
 .art-container :deep(.art-video-player) {
   width: 100%;
   height: 100%;
+  padding-bottom: 56px;
+  box-sizing: border-box;
 }
 
 .art-container :deep(.art-video) {
   object-fit: contain;
   width: 100%;
   height: 100%;
-}
-
-.art-container :deep(.art-bottom) {
-  bottom: 56px;
-}
-
-.art-container :deep(.art-controls) {
-  padding-bottom: 4px;
 }
 
 .overlay-right {
