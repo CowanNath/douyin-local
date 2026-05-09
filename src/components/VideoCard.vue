@@ -68,7 +68,11 @@ function createPlayer(url) {
     },
   })
 
-  art.on('video:loadeddata', () => {
+  art.on('video:loadedmetadata', () => {
+    art.video.currentTime = 0.5
+  })
+
+  art.on('video:seeked', () => {
     if (art.poster) return
     try {
       const canvas = document.createElement('canvas')
