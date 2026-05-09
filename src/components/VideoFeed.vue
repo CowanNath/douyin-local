@@ -16,6 +16,7 @@
         :active="i === 1 && !resetting"
         :isFav="isFav(item.video?.name)"
         @toggle-fav="handleFav"
+        @ended="next"
       />
     </div>
 

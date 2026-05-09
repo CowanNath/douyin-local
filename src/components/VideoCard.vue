@@ -18,8 +18,6 @@ Artplayer.MOBILE_CLICK_PLAY = true
 Artplayer.MOBILE_DBCLICK_PLAY = true
 Artplayer.REMOVE_SRC_WHEN_DESTROY = true
 
-let userInteracted = false
-
 const props = defineProps({
   video: { type: Object, required: true },
   index: { type: Number, required: true },
@@ -27,7 +25,7 @@ const props = defineProps({
   isFav: { type: Boolean, default: false },
 })
 
-const emit = defineEmits(['toggle-fav'])
+const emit = defineEmits(['toggle-fav', 'ended'])
 
 const artRef = ref(null)
 let art = null
@@ -43,9 +41,9 @@ function createPlayer(url) {
   art = new Artplayer({
     container: artRef.value,
     url,
-    autoplay: props.active,
-    muted: !userInteracted,
-    loop: true,
+    autoplay: false,
+    muted: false,
+    loop: false,
     playsInline: true,
     mutex: true,
     miniProgressBar: true,
@@ -70,17 +68,8 @@ function createPlayer(url) {
     },
   })
 
-  art.on('click', () => {
-    if (!userInteracted) {
-      userInteracted = true
-      art.muted = false
-    }
-  })
-  art.on('dblclick', () => {
-    if (!userInteracted) {
-      userInteracted = true
-      art.muted = false
-    }
+  art.on('video:ended', () => {
+    emit('ended')
   })
 }
 
@@ -99,7 +88,6 @@ watch(() => props.active, (val) => {
   if (!art || art.isDestroy) return
   if (val) {
     art.play()
-    if (userInteracted) art.muted = false
   } else {
     art.pause()
   }
