@@ -1,0 +1,11 @@
+services:
+  douyin-local:
+    build: .
+    container_name: douyin-local
+    ports:
+      - "7077:7077"
+    volumes:
+      - ${VIDEO_DIR:-./videos}:/videos:ro
+    environment:
+      - VIDEO_DIR=/videos
+    restart: unless-stopped
