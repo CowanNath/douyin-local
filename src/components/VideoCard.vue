@@ -3,8 +3,31 @@
     <div ref="artRef" class="art-container"></div>
     <div class="overlay-right">
       <FavoriteBtn :active="isFav" @toggle="$emit('toggle-fav', video.name)" />
+      <button class="del-btn" @click.stop="onDel">
+        <svg viewBox="0 0 24 24" width="36" height="36">
+          <path
+            fill="rgba(255,255,255,0.7)"
+            stroke="rgba(255,255,255,0.9)"
+            stroke-width="1.5"
+            d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"
+          />
+        </svg>
+      </button>
     </div>
     <div class="video-title">{{ video.name }}</div>
+    <Teleport to="body">
+      <div v-if="showConfirm" class="del-overlay" @click.self="showConfirm = false">
+        <div class="del-dialog">
+          <p class="del-text">确定要删除这个视频吗？</p>
+          <p class="del-filename">{{ video.name }}</p>
+          <p class="del-hint">此操作不可恢复，文件将被永久删除</p>
+          <div class="del-actions">
+            <button class="del-cancel" @click="showConfirm = false">取消</button>
+            <button class="del-confirm" @click="confirmDel">删除</button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -25,9 +48,10 @@ const props = defineProps({
   isFav: { type: Boolean, default: false },
 })
 
-const emit = defineEmits(['toggle-fav', 'ended'])
+const emit = defineEmits(['toggle-fav', 'ended', 'delete'])
 
 const artRef = ref(null)
+const showConfirm = ref(false)
 let art = null
 
 function createPlayer(url) {
@@ -118,6 +142,15 @@ watch(() => props.video.url, (url) => {
 })
 
 defineExpose({ art })
+
+function onDel() {
+  showConfirm.value = true
+}
+
+async function confirmDel() {
+  showConfirm.value = false
+  emit('delete', props.video.name)
+}
 </script>
 
 <style scoped>
@@ -168,5 +201,87 @@ defineExpose({ art })
   overflow: hidden;
   text-overflow: ellipsis;
   z-index: 10;
+}
+
+.del-btn {
+  background: none;
+  border: none;
+  padding: 8px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.2s;
+}
+.del-btn:active {
+  transform: scale(1.2);
+}
+
+.del-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.del-dialog {
+  background: #1a1a1a;
+  border-radius: 12px;
+  padding: 24px;
+  width: min(320px, 80vw);
+  text-align: center;
+}
+
+.del-text {
+  color: #eee;
+  font-size: 16px;
+  margin: 0 0 8px;
+}
+
+.del-filename {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 13px;
+  word-break: break-all;
+  margin: 0 0 8px;
+}
+
+.del-hint {
+  color: #fe2c55;
+  font-size: 12px;
+  margin: 0 0 20px;
+}
+
+.del-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.del-cancel {
+  flex: 1;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  border-radius: 8px;
+  color: #eee;
+  font-size: 14px;
+  cursor: pointer;
+}
+.del-cancel:active {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.del-confirm {
+  flex: 1;
+  padding: 10px;
+  background: #fe2c55;
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 14px;
+  cursor: pointer;
+}
+.del-confirm:active {
+  background: #e02048;
 }
 </style>

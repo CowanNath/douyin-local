@@ -91,6 +91,23 @@ app.post('/api/favorites/import', (req, res) => {
   res.json(merged)
 })
 
+app.delete('/api/videos/:filename', (req, res) => {
+  const filename = decodeURIComponent(req.params.filename)
+  const filePath = path.join(videoDir, filename)
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({ error: '文件不存在' })
+  }
+  try {
+    fs.unlinkSync(filePath)
+    const favs = loadFavorites()
+    const idx = favs.indexOf(filename)
+    if (idx >= 0) { favs.splice(idx, 1); saveFavorites(favs) }
+    res.json({ deleted: filename })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
 app.get('/videos/:filename', (req, res) => {
   const filePath = path.join(videoDir, decodeURIComponent(req.params.filename))
 

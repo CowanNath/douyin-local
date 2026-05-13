@@ -18,6 +18,7 @@
         :isFav="isFav(item.video?.name)"
         @toggle-fav="handleFav"
         @ended="next"
+        @delete="handleDelete"
       />
     </div>
 
@@ -110,6 +111,16 @@ function cycleMode() {
   const cur = MODES.indexOf(settings.value.playMode)
   const next = MODES[(cur + 1) % MODES.length]
   updateSettings({ playMode: next })
+}
+
+async function handleDelete(name) {
+  try {
+    const res = await fetch(`/api/videos/${encodeURIComponent(name)}`, { method: 'DELETE' })
+    const data = await res.json()
+    if (data.error) return
+    await fetchVideos()
+    await fetchFavorites()
+  } catch {}
 }
 
 function goTo(index) {
