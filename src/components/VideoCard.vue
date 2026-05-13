@@ -148,7 +148,7 @@ defineExpose({ art })
 .overlay-right {
   position: absolute;
   right: 12px;
-  bottom: 80px;
+  bottom: 130px;
   display: flex;
   flex-direction: column;
   align-items: center;
