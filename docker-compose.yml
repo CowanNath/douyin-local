@@ -6,6 +6,11 @@ services:
       - "7077:7077"
     volumes:
       - "/vol00/WDC WD10SDZW-11UMGS0/truvaze_videos:/videos"
+      - "douyin-data:/data"
     environment:
       - VIDEO_DIR=/videos
+      - DATA_DIR=/data
     restart: always
+
+volumes:
+  douyin-data:
