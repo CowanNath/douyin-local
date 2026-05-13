@@ -149,6 +149,11 @@ function onDel() {
 
 async function confirmDel() {
   showConfirm.value = false
+  if (art && !art.isDestroy) {
+    art.pause()
+    art.destroy(false)
+    art = null
+  }
   emit('delete', props.video.name)
 }
 </script>

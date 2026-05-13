@@ -97,15 +97,13 @@ app.delete('/api/videos/:filename', (req, res) => {
   if (!fs.existsSync(filePath)) {
     return res.status(404).json({ error: '文件不存在' })
   }
-  try {
-    fs.unlinkSync(filePath)
+  fs.unlink(filePath, (err) => {
+    if (err) return res.status(500).json({ error: '删除失败: ' + err.message })
     const favs = loadFavorites()
     const idx = favs.indexOf(filename)
     if (idx >= 0) { favs.splice(idx, 1); saveFavorites(favs) }
     res.json({ deleted: filename })
-  } catch (err) {
-    res.status(500).json({ error: err.message })
-  }
+  })
 })
 
 app.get('/videos/:filename', (req, res) => {
