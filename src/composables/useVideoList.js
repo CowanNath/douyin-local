@@ -1,5 +1,6 @@
 import { ref, computed } from 'vue'
 import { useSettings } from './useSettings.js'
+import { useFavorites } from './useFavorites.js'
 
 const videos = ref([])
 const loading = ref(false)
@@ -17,15 +18,21 @@ function shuffle(arr) {
 
 export function useVideoList() {
   const { settings } = useSettings()
+  const { favorites } = useFavorites()
 
   const orderedList = computed(() => {
-    if (settings.value.playMode === 'random') {
-      if (shuffled.length !== videos.value.length) {
-        shuffled = shuffle(videos.value)
+    const mode = settings.value.playMode
+    const list = mode === 'favorites'
+      ? videos.value.filter(v => favorites.value.includes(v.name))
+      : videos.value
+
+    if (mode === 'random') {
+      if (shuffled.length !== list.length) {
+        shuffled = shuffle(list)
       }
       return shuffled
     }
-    return videos.value
+    return list
   })
 
   async function fetchVideos() {

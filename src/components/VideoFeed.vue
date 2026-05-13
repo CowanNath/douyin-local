@@ -6,6 +6,7 @@
     @touchmove.passive="onTouchMove"
     @touchend="onTouchEnd"
     @wheel.prevent="onWheel"
+    @mousedown.prevent="onMouseDown"
   >
     <div class="feed-track" :style="trackStyle">
       <VideoCard
@@ -32,6 +33,13 @@
     <div class="counter" v-if="totalCount > 0">
       {{ currentIndex + 1 }} / {{ totalCount }}
     </div>
+
+    <button class="mode-btn" v-if="totalCount > 0" @click.stop="cycleMode" :title="modeLabel">
+      <svg v-if="settings.playMode === 'sequential'" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+      <svg v-else-if="settings.playMode === 'random'" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
+      <svg v-else viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+      <span>{{ modeLabel }}</span>
+    </button>
   </div>
 </template>
 
@@ -40,11 +48,13 @@ import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import VideoCard from './VideoCard.vue'
 import { useVideoList } from '../composables/useVideoList.js'
 import { useFavorites } from '../composables/useFavorites.js'
+import { useSettings } from '../composables/useSettings.js'
 
 const emit = defineEmits(['index-change'])
 
 const { orderedList, loading, fetchVideos } = useVideoList()
 const { isFavorite, toggle: toggleFav } = useFavorites()
+const { settings, update: updateSettings } = useSettings()
 
 const feedRef = ref(null)
 const currentIndex = ref(0)
@@ -55,6 +65,7 @@ const resetting = ref(false)
 let touchStartY = 0
 let touchDeltaY = 0
 let wheelTimer = null
+let isDragging = false
 
 const totalCount = computed(() => orderedList.value.length)
 
@@ -88,6 +99,17 @@ function isFav(name) {
 
 function handleFav(name) {
   toggleFav(name)
+}
+
+const MODES = ['sequential', 'random', 'favorites']
+const MODE_LABELS = { sequential: '顺序', random: '随机', favorites: '收藏' }
+
+const modeLabel = computed(() => MODE_LABELS[settings.value.playMode] || '顺序')
+
+function cycleMode() {
+  const cur = MODES.indexOf(settings.value.playMode)
+  const next = MODES[(cur + 1) % MODES.length]
+  updateSettings({ playMode: next })
 }
 
 function goTo(index) {
@@ -153,12 +175,60 @@ function onWheel(e) {
   }, 50)
 }
 
+function onMouseDown(e) {
+  if (animating.value) return
+  isDragging = true
+  touchStartY = e.clientY
+  touchDeltaY = 0
+}
+
+function onMouseMove(e) {
+  if (!isDragging || animating.value) return
+  touchDeltaY = e.clientY - touchStartY
+  const vh = window.innerHeight
+  const dragOffset = touchDeltaY / vh
+  offset.value = -1 + dragOffset
+}
+
+function onMouseUp() {
+  if (!isDragging) return
+  isDragging = false
+  if (animating.value) return
+  const threshold = window.innerHeight * 0.15
+  if (touchDeltaY < -threshold) {
+    next()
+  } else if (touchDeltaY > threshold) {
+    prev()
+  } else {
+    animating.value = true
+    offset.value = -1
+    setTimeout(() => { animating.value = false }, 360)
+  }
+}
+
+function onKeyDown(e) {
+  if (animating.value) return
+  if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
+    e.preventDefault()
+    next()
+  } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+    e.preventDefault()
+    prev()
+  }
+}
+
 onMounted(async () => {
   await fetchVideos()
+  window.addEventListener('mousemove', onMouseMove)
+  window.addEventListener('mouseup', onMouseUp)
+  window.addEventListener('keydown', onKeyDown)
 })
 
 onBeforeUnmount(() => {
   clearTimeout(wheelTimer)
+  window.removeEventListener('mousemove', onMouseMove)
+  window.removeEventListener('mouseup', onMouseUp)
+  window.removeEventListener('keydown', onKeyDown)
 })
 
 watch(orderedList, () => {
@@ -179,6 +249,12 @@ defineExpose({ next, prev, goTo, fetchVideos })
   overflow: hidden;
   background: #000;
   touch-action: pan-y;
+  cursor: grab;
+  user-select: none;
+}
+
+.video-feed:active {
+  cursor: grabbing;
 }
 
 .feed-track {
@@ -231,5 +307,28 @@ defineExpose({ next, prev, goTo, fetchVideos })
   color: rgba(255, 255, 255, 0.7);
   font-size: 12px;
   z-index: 20;
+}
+
+.mode-btn {
+  position: absolute;
+  top: max(env(safe-area-inset-top, 0px), 48px);
+  left: 68px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: rgba(0, 0, 0, 0.5);
+  border: none;
+  border-radius: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 12px;
+  cursor: pointer;
+  z-index: 20;
+  -webkit-tap-highlight-color: transparent;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.mode-btn:active {
+  background: rgba(0, 0, 0, 0.7);
 }
 </style>

@@ -19,6 +19,10 @@
                 <input type="radio" value="random" v-model="settings.playMode" />
                 <span class="radio-label">随机播放</span>
               </label>
+              <label class="radio-item" :class="{ active: settings.playMode === 'favorites' }">
+                <input type="radio" value="favorites" v-model="settings.playMode" />
+                <span class="radio-label">收藏播放</span>
+              </label>
             </div>
           </section>
 

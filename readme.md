@@ -85,3 +85,6 @@ docker compose up -d
 ├── docker-compose.yml
 └── vite.config.js
 ```
+
+git pull
+docker compose up -d --build
