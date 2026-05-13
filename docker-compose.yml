@@ -5,7 +5,7 @@ services:
     ports:
       - "7077:7077"
     volumes:
-      - "/vol00/WDC WD10SDZW-11UMGS0/truvaze_videos:/videos:ro"
+      - "/vol00/WDC WD10SDZW-11UMGS0/truvaze_videos:/videos"
     environment:
       - VIDEO_DIR=/videos
     restart: always
