@@ -1,35 +1,37 @@
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 
-const STORAGE_KEY = 'douyin-local-favorites'
+const favorites = ref([])
+let loaded = false
 
-function load() {
+async function ensureLoaded() {
+  if (loaded) return
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? JSON.parse(raw) : []
+    const res = await fetch('/api/favorites')
+    favorites.value = await res.json()
   } catch {
-    return []
+    favorites.value = []
   }
+  loaded = true
 }
 
-const favorites = ref(load())
-
 export function useFavorites() {
-  function toggle(name) {
-    const idx = favorites.value.indexOf(name)
-    if (idx >= 0) {
-      favorites.value.splice(idx, 1)
-    } else {
-      favorites.value.push(name)
-    }
-    save()
+  async function fetchFavorites() {
+    await ensureLoaded()
+    return favorites.value
+  }
+
+  async function toggle(name) {
+    await ensureLoaded()
+    const res = await fetch('/api/favorites', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    })
+    favorites.value = await res.json()
   }
 
   function isFavorite(name) {
     return favorites.value.includes(name)
-  }
-
-  function save() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(favorites.value))
   }
 
   function exportJSON() {
@@ -42,16 +44,19 @@ export function useFavorites() {
     URL.revokeObjectURL(url)
   }
 
-  function importJSON(file) {
+  async function importJSON(file) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader()
-      reader.onload = () => {
+      reader.onload = async () => {
         try {
           const data = JSON.parse(reader.result)
           if (Array.isArray(data)) {
-            const merged = new Set([...favorites.value, ...data])
-            favorites.value = [...merged]
-            save()
+            const res = await fetch('/api/favorites/import', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ names: data }),
+            })
+            favorites.value = await res.json()
             resolve(favorites.value.length)
           } else {
             reject(new Error('JSON 格式不正确'))
@@ -65,5 +70,5 @@ export function useFavorites() {
     })
   }
 
-  return { favorites, toggle, isFavorite, exportJSON, importJSON }
+  return { favorites, fetchFavorites, toggle, isFavorite, exportJSON, importJSON }
 }

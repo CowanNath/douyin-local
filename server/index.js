@@ -7,6 +7,22 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const app = express()
 const PORT = process.env.PORT || 7077
 
+const DATA_DIR = process.env.DATA_DIR || path.resolve(__dirname, '..', 'data')
+const FAVORITES_FILE = path.join(DATA_DIR, 'favorites.json')
+if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true })
+
+function loadFavorites() {
+  try {
+    return JSON.parse(fs.readFileSync(FAVORITES_FILE, 'utf-8'))
+  } catch {
+    return []
+  }
+}
+
+function saveFavorites(list) {
+  fs.writeFileSync(FAVORITES_FILE, JSON.stringify(list, null, 2))
+}
+
 const VIDEO_EXTENSIONS = new Set(['.mp4', '.webm', '.mov', '.mkv', '.avi', '.m4v'])
 
 app.use(express.json())
@@ -49,6 +65,30 @@ app.put('/api/settings/video-dir', (req, res) => {
 
   videoDir = resolved
   res.json({ dir: videoDir })
+})
+
+app.get('/api/favorites', (req, res) => {
+  res.json(loadFavorites())
+})
+
+app.put('/api/favorites', (req, res) => {
+  const { name } = req.body
+  if (!name) return res.status(400).json({ error: 'name is required' })
+  const list = loadFavorites()
+  const idx = list.indexOf(name)
+  if (idx >= 0) list.splice(idx, 1)
+  else list.push(name)
+  saveFavorites(list)
+  res.json(list)
+})
+
+app.post('/api/favorites/import', (req, res) => {
+  const { names } = req.body
+  if (!Array.isArray(names)) return res.status(400).json({ error: 'names must be an array' })
+  const list = loadFavorites()
+  const merged = [...new Set([...list, ...names])]
+  saveFavorites(merged)
+  res.json(merged)
 })
 
 app.get('/videos/:filename', (req, res) => {

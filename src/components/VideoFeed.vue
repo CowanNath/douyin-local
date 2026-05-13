@@ -53,7 +53,7 @@ import { useSettings } from '../composables/useSettings.js'
 const emit = defineEmits(['index-change'])
 
 const { orderedList, loading, fetchVideos } = useVideoList()
-const { isFavorite, toggle: toggleFav } = useFavorites()
+const { isFavorite, toggle: toggleFav, fetchFavorites } = useFavorites()
 const { settings, update: updateSettings } = useSettings()
 
 const feedRef = ref(null)
@@ -218,7 +218,7 @@ function onKeyDown(e) {
 }
 
 onMounted(async () => {
-  await fetchVideos()
+  await Promise.all([fetchVideos(), fetchFavorites()])
   window.addEventListener('mousemove', onMouseMove)
   window.addEventListener('mouseup', onMouseUp)
   window.addEventListener('keydown', onKeyDown)
