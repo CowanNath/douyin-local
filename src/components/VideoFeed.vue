@@ -19,6 +19,7 @@
         @toggle-fav="handleFav"
         @ended="next"
         @delete="handleDelete"
+        :class="{ 'pool-hidden': i === 2 && hidePoolEnd }"
       />
     </div>
 
@@ -62,6 +63,7 @@ const currentIndex = ref(0)
 const offset = ref(-1)
 const animating = ref(false)
 const resetting = ref(false)
+const hidePoolEnd = ref(false)
 
 let touchStartY = 0
 let touchDeltaY = 0
@@ -128,6 +130,7 @@ function goTo(index) {
   if (index === currentIndex.value) return
 
   animating.value = true
+  hidePoolEnd.value = true
   const direction = index > currentIndex.value ? -1 : 1
   offset.value = -1 + direction
   currentIndex.value = index
@@ -137,7 +140,10 @@ function goTo(index) {
     animating.value = false
     resetting.value = true
     offset.value = -1
-    nextTick(() => { resetting.value = false })
+    requestAnimationFrame(() => {
+      hidePoolEnd.value = false
+      resetting.value = false
+    })
   }, 360)
 }
 
@@ -276,6 +282,10 @@ defineExpose({ next, prev, goTo, fetchVideos })
 .feed-track > * {
   width: 100%;
   height: 100vh;
+}
+
+.pool-hidden {
+  visibility: hidden;
 }
 
 .empty-state,
