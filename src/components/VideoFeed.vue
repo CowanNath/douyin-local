@@ -100,8 +100,9 @@ function isFav(name) {
   return isFavorite(name)
 }
 
-function handleFav(name) {
-  toggleFav(name)
+async function handleFav(name) {
+  await toggleFav(name)
+  await fetchVideos()
 }
 
 const MODES = ['sequential', 'random', 'favorites']
@@ -115,9 +116,10 @@ function cycleMode() {
   updateSettings({ playMode: next })
 }
 
-async function handleDelete(name) {
+async function handleDelete({ name, subDir }) {
   try {
-    const res = await fetch(`/api/videos/${encodeURIComponent(name)}`, { method: 'DELETE' })
+    const query = subDir ? `?sub=${subDir}` : ''
+    const res = await fetch(`/api/videos/${encodeURIComponent(name)}${query}`, { method: 'DELETE' })
     const data = await res.json()
     if (data.error) return
     await fetchVideos()

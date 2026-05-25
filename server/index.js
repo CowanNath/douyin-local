@@ -27,6 +27,35 @@ const VIDEO_EXTENSIONS = new Set(['.mp4', '.webm', '.mov', '.mkv', '.avi', '.m4v
 
 app.use(express.json())
 
+function getFavDir() {
+  return path.join(videoDir, 'favourite')
+}
+
+function findVideoLocation(filename) {
+  if (fs.existsSync(path.join(videoDir, filename))) return 'root'
+  if (fs.existsSync(path.join(getFavDir(), filename))) return 'favourite'
+  return null
+}
+
+function moveToFavourite(filename) {
+  const favDir = getFavDir()
+  if (!fs.existsSync(favDir)) fs.mkdirSync(favDir, { recursive: true })
+  const src = path.join(videoDir, filename)
+  const dst = path.join(favDir, filename)
+  if (fs.existsSync(src) && !fs.existsSync(dst)) {
+    fs.renameSync(src, dst)
+  }
+}
+
+function moveFromFavourite(filename) {
+  const favDir = getFavDir()
+  const src = path.join(favDir, filename)
+  const dst = path.join(videoDir, filename)
+  if (fs.existsSync(src) && !fs.existsSync(dst)) {
+    fs.renameSync(src, dst)
+  }
+}
+
 let videoDir = process.env.VIDEO_DIR || path.resolve(__dirname, '..', 'videos')
 
 app.get('/api/videos', (req, res) => {
@@ -35,17 +64,20 @@ app.get('/api/videos', (req, res) => {
       return res.json({ videos: [], error: `目录不存在: ${videoDir}` })
     }
 
-    const files = fs.readdirSync(videoDir).filter((f) => {
-      const ext = path.extname(f).toLowerCase()
-      return VIDEO_EXTENSIONS.has(ext)
-    })
+    const scanDir = (dir, subDir) => {
+      if (!fs.existsSync(dir)) return []
+      return fs.readdirSync(dir).filter((f) => {
+        const ext = path.extname(f).toLowerCase()
+        return VIDEO_EXTENSIONS.has(ext)
+      }).map((f) => ({
+        name: f,
+        url: `/videos/${encodeURIComponent(f)}${subDir ? '?sub=favourite' : ''}`,
+        size: fs.statSync(path.join(dir, f)).size,
+        subDir,
+      }))
+    }
 
-    const videos = files.map((f) => ({
-      name: f,
-      url: `/videos/${encodeURIComponent(f)}`,
-      size: fs.statSync(path.join(videoDir, f)).size,
-    }))
-
+    const videos = [...scanDir(videoDir, ''), ...scanDir(getFavDir(), 'favourite')]
     res.json({ videos, dir: videoDir })
   } catch (err) {
     res.status(500).json({ videos: [], error: err.message })
@@ -76,8 +108,13 @@ app.put('/api/favorites', (req, res) => {
   if (!name) return res.status(400).json({ error: 'name is required' })
   const list = loadFavorites()
   const idx = list.indexOf(name)
-  if (idx >= 0) list.splice(idx, 1)
-  else list.push(name)
+  if (idx >= 0) {
+    list.splice(idx, 1)
+    moveFromFavourite(name)
+  } else {
+    list.push(name)
+    moveToFavourite(name)
+  }
   saveFavorites(list)
   res.json(list)
 })
@@ -88,12 +125,17 @@ app.post('/api/favorites/import', (req, res) => {
   const list = loadFavorites()
   const merged = [...new Set([...list, ...names])]
   saveFavorites(merged)
+  for (const name of names) {
+    moveToFavourite(name)
+  }
   res.json(merged)
 })
 
 app.delete('/api/videos/:filename', (req, res) => {
   const filename = decodeURIComponent(req.params.filename)
-  const filePath = path.join(videoDir, filename)
+  const sub = req.query.sub === 'favourite' ? 'favourite' : ''
+  const baseDir = sub ? getFavDir() : videoDir
+  const filePath = path.join(baseDir, filename)
   if (!fs.existsSync(filePath)) {
     return res.status(404).json({ error: '文件不存在' })
   }
@@ -107,7 +149,10 @@ app.delete('/api/videos/:filename', (req, res) => {
 })
 
 app.get('/videos/:filename', (req, res) => {
-  const filePath = path.join(videoDir, decodeURIComponent(req.params.filename))
+  const filename = decodeURIComponent(req.params.filename)
+  const sub = req.query.sub === 'favourite' ? 'favourite' : ''
+  const baseDir = sub ? getFavDir() : videoDir
+  const filePath = path.join(baseDir, filename)
 
   if (!fs.existsSync(filePath)) {
     return res.status(404).send('Not found')

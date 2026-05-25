@@ -154,7 +154,7 @@ async function confirmDel() {
     art.destroy(false)
     art = null
   }
-  emit('delete', props.video.name)
+  emit('delete', { name: props.video.name, subDir: props.video.subDir || '' })
 }
 </script>
 
