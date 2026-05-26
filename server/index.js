@@ -192,7 +192,26 @@ if (fs.existsSync(distPath)) {
   })
 }
 
+function syncFavoritesOnStartup() {
+  const favDir = getFavDir()
+  if (!fs.existsSync(favDir)) fs.mkdirSync(favDir, { recursive: true })
+  const favs = loadFavorites()
+  let moved = 0
+  for (const name of favs) {
+    const src = path.join(videoDir, name)
+    const dst = path.join(favDir, name)
+    if (fs.existsSync(src) && !fs.existsSync(dst)) {
+      fs.renameSync(src, dst)
+      moved++
+    }
+  }
+  if (moved > 0) {
+    console.log(`已同步 ${moved} 个收藏视频到 favourite 文件夹`)
+  }
+}
+
 app.listen(PORT, () => {
   console.log(`服务器运行在 http://localhost:${PORT}`)
   console.log(`视频目录: ${videoDir}`)
+  syncFavoritesOnStartup()
 })
