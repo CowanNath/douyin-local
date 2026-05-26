@@ -230,8 +230,8 @@ function onMouseUp() {
 function seekActive(delta) {
   const art = activeCardRef.value?.art
   if (!art || art.isDestroy) return
-  const t = art.video.currentTime + delta
-  art.video.currentTime = Math.max(0, Math.min(t, art.video.duration || 0))
+  if (delta > 0) art.forward = delta
+  else art.backward = -delta
 }
 
 function onKeyDown(e) {
