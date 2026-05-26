@@ -250,11 +250,22 @@ function onKeyDown(e) {
   }
 }
 
+function onKeyCapture(e) {
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+    const tag = e.target?.tagName
+    if (tag === 'VIDEO' || tag === 'INPUT' || tag === 'TEXTAREA') {
+      e.preventDefault()
+      e.stopPropagation()
+    }
+  }
+}
+
 onMounted(async () => {
   await Promise.all([fetchVideos(), fetchFavorites()])
   window.addEventListener('mousemove', onMouseMove)
   window.addEventListener('mouseup', onMouseUp)
   window.addEventListener('keydown', onKeyDown)
+  document.addEventListener('keydown', onKeyCapture, true)
 })
 
 onBeforeUnmount(() => {
@@ -262,6 +273,7 @@ onBeforeUnmount(() => {
   window.removeEventListener('mousemove', onMouseMove)
   window.removeEventListener('mouseup', onMouseUp)
   window.removeEventListener('keydown', onKeyDown)
+  document.removeEventListener('keydown', onKeyCapture, true)
 })
 
 watch(orderedList, () => {
