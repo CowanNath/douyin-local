@@ -227,6 +227,13 @@ function onMouseUp() {
   }
 }
 
+function seekActive(delta) {
+  const art = activeCardRef.value?.art
+  if (!art || art.isDestroy) return
+  const t = art.video.currentTime + delta
+  art.video.currentTime = Math.max(0, Math.min(t, art.video.duration || 0))
+}
+
 function onKeyDown(e) {
   if (e.key === 'ArrowDown') {
     e.preventDefault()
@@ -236,12 +243,10 @@ function onKeyDown(e) {
     prev()
   } else if (e.key === 'ArrowRight') {
     e.preventDefault()
-    const art = activeCardRef.value?.art
-    if (art && !art.isDestroy) art.currentTime = Math.min(art.duration, art.currentTime + 5)
+    seekActive(5)
   } else if (e.key === 'ArrowLeft') {
     e.preventDefault()
-    const art = activeCardRef.value?.art
-    if (art && !art.isDestroy) art.currentTime = Math.max(0, art.currentTime - 5)
+    seekActive(-5)
   }
 }
 
