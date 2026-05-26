@@ -24,6 +24,12 @@
                 <span class="radio-label">收藏播放</span>
               </label>
             </div>
+            <label class="toggle-row" v-show="settings.playMode === 'random'">
+              <span>随机时包含已收藏视频</span>
+              <div class="toggle" :class="{ on: settings.randomIncludeFav }" @click="settings.randomIncludeFav = !settings.randomIncludeFav">
+                <div class="toggle-thumb"></div>
+              </div>
+            </label>
           </section>
 
           <section class="setting-group">
@@ -208,6 +214,41 @@ async function handleImport(e) {
 .radio-label {
   font-size: 14px;
   color: rgba(255, 255, 255, 0.8);
+}
+
+.toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 12px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+}
+.toggle {
+  position: relative;
+  width: 40px;
+  height: 22px;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.15);
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+.toggle.on {
+  background: #fe2c55;
+}
+.toggle-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.2s;
+}
+.toggle.on .toggle-thumb {
+  transform: translateX(18px);
 }
 
 .dir-row {

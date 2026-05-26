@@ -22,9 +22,13 @@ export function useVideoList() {
 
   const orderedList = computed(() => {
     const mode = settings.value.playMode
-    const list = mode === 'favorites'
+    let list = mode === 'favorites'
       ? videos.value.filter(v => favorites.value.includes(v.name))
       : videos.value
+
+    if (mode === 'random' && !settings.value.randomIncludeFav) {
+      list = list.filter(v => !favorites.value.includes(v.name))
+    }
 
     if (mode === 'random') {
       if (shuffled.length !== list.length) {

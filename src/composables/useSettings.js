@@ -5,6 +5,7 @@ const STORAGE_KEY = 'douyin-local-settings'
 const defaults = {
   playMode: 'sequential',
   videoDir: '',
+  randomIncludeFav: true,
 }
 
 function load() {
