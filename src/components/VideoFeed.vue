@@ -12,6 +12,7 @@
       <VideoCard
         v-for="(item, i) in pool"
         :key="item.key"
+        :ref="el => { if (i === 1) activeCardRef = el }"
         :video="item.video"
         :index="i"
         :active="i === 1 && !resetting"
@@ -59,6 +60,7 @@ const { isFavorite, toggle: toggleFav, fetchFavorites } = useFavorites()
 const { settings, update: updateSettings } = useSettings()
 
 const feedRef = ref(null)
+const activeCardRef = ref(null)
 const currentIndex = ref(0)
 const offset = ref(-1)
 const animating = ref(false)
@@ -226,13 +228,20 @@ function onMouseUp() {
 }
 
 function onKeyDown(e) {
-  if (animating.value) return
-  if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
+  if (e.key === 'ArrowDown') {
     e.preventDefault()
     next()
-  } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+  } else if (e.key === 'ArrowUp') {
     e.preventDefault()
     prev()
+  } else if (e.key === 'ArrowRight') {
+    e.preventDefault()
+    const art = activeCardRef.value?.art
+    if (art && !art.isDestroy) art.currentTime = Math.min(art.duration, art.currentTime + 5)
+  } else if (e.key === 'ArrowLeft') {
+    e.preventDefault()
+    const art = activeCardRef.value?.art
+    if (art && !art.isDestroy) art.currentTime = Math.max(0, art.currentTime - 5)
   }
 }
 
