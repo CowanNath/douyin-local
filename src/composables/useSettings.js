@@ -6,6 +6,7 @@ const defaults = {
   playMode: 'sequential',
   videoDir: '',
   randomIncludeFav: true,
+  favShuffle: false,
 }
 
 function load() {

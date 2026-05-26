@@ -30,7 +30,7 @@ export function useVideoList() {
       list = list.filter(v => !favorites.value.includes(v.name))
     }
 
-    if (mode === 'random') {
+    if ((mode === 'random' || (mode === 'favorites' && settings.value.favShuffle))) {
       if (shuffled.length !== list.length) {
         shuffled = shuffle(list)
       }

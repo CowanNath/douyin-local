@@ -30,6 +30,12 @@
                 <div class="toggle-thumb"></div>
               </div>
             </label>
+            <label class="toggle-row" v-show="settings.playMode === 'favorites'">
+              <span>随机播放收藏</span>
+              <div class="toggle" :class="{ on: settings.favShuffle }" @click="settings.favShuffle = !settings.favShuffle">
+                <div class="toggle-thumb"></div>
+              </div>
+            </label>
           </section>
 
           <section class="setting-group">
