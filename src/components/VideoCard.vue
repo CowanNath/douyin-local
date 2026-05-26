@@ -1,5 +1,9 @@
 <template>
-  <div class="video-card" :data-index="index">
+  <div class="video-card" :data-index="index"
+    @touchstart.passive="onLongPressStart"
+    @touchend="onLongPressEnd"
+    @touchcancel="onLongPressEnd"
+  >
     <div ref="artRef" class="art-container"></div>
     <div class="overlay-right">
       <FavoriteBtn :active="isFav" @toggle="$emit('toggle-fav', video.name)" />
@@ -142,6 +146,26 @@ watch(() => props.video.url, (url) => {
 })
 
 defineExpose({ art })
+
+let longPressTimer = null
+let normalPlaybackRate = 1
+
+function onLongPressStart(e) {
+  if (!art || art.isDestroy) return
+  longPressTimer = setTimeout(() => {
+    if (art && !art.isDestroy) {
+      normalPlaybackRate = art.playbackRate || 1
+      art.playbackRate = 2
+    }
+  }, 300)
+}
+
+function onLongPressEnd() {
+  clearTimeout(longPressTimer)
+  if (art && !art.isDestroy && art.playbackRate === 2) {
+    art.playbackRate = normalPlaybackRate
+  }
+}
 
 function onDel() {
   showConfirm.value = true
