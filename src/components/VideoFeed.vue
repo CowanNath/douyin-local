@@ -252,10 +252,8 @@ function onKeyDown(e) {
 
 function onKeyCapture(e) {
   if (e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-    const tag = e.target?.tagName
-    if (tag === 'VIDEO' || tag === 'INPUT' || tag === 'TEXTAREA') {
+    if (e.target?.tagName === 'VIDEO') {
       e.preventDefault()
-      e.stopPropagation()
     }
   }
 }
