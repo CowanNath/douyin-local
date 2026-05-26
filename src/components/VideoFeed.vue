@@ -12,7 +12,7 @@
       <VideoCard
         v-for="(item, i) in pool"
         :key="item.key"
-        :ref="el => { if (i === 1) activeCardRef = el }"
+        :ref="el => { if (i === 1) activeCardRef.value = el }"
         :video="item.video"
         :index="i"
         :active="i === 1 && !resetting"
