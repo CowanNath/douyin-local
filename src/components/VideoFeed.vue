@@ -12,7 +12,7 @@
       <VideoCard
         v-for="(item, i) in pool"
         :key="i"
-        :ref="el => { if (i === 1) activeCardRef.value = el }"
+        :ref="el => setCardRef(el, i)"
         :video="item.video"
         :index="i"
         :active="i === 1 && !resetting"
@@ -66,6 +66,13 @@ const offset = ref(-1)
 const animating = ref(false)
 const resetting = ref(false)
 const hidePoolEnd = ref(false)
+
+// 用命名函数而非内联箭头函数作 ref 回调：
+// 内联 `el => { if (i===1) activeCardRef.value = el }` 在模板编译后
+// 闭包捕获异常，导致 activeCardRef 永远为 null，键盘快进失效。
+function setCardRef(el, i) {
+  if (i === 1) activeCardRef.value = el
+}
 
 let touchStartY = 0
 let touchDeltaY = 0

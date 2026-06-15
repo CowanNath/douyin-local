@@ -1,8 +1,10 @@
 <template>
   <div class="video-card" :data-index="index"
-    @touchstart.passive="onLongPressStart"
+    @touchstart="onLongPressStart"
     @touchend="onLongPressEnd"
     @touchcancel="onLongPressEnd"
+    @touchmove="onLongPressEnd"
+    @contextmenu.prevent="onContextMenu"
   >
     <div ref="artRef" class="art-container"></div>
     <div class="overlay-right">
@@ -93,6 +95,9 @@ function createPlayer(url) {
       'webkit-playsinline': true,
       'x5-video-player-type': 'h5',
       'x5-video-player-fullscreen': false,
+      // 禁用浏览器原生下载按钮和画中画按钮（移动端长按菜单）
+      controlsList: 'nodownload noplaybackrate',
+      disablePictureInPicture: true,
     },
   })
 
@@ -155,23 +160,32 @@ defineExpose({
 
 let longPressTimer = null
 let normalPlaybackRate = 1
+let longPressActive = false
 
 function onLongPressStart(e) {
   if (!art || art.isDestroy) return
+  // 阻止移动端长按弹出的下载/保存菜单
+  if (e.cancelable) e.preventDefault()
+  const startY = e.touches[0]?.clientY
   longPressTimer = setTimeout(() => {
     if (art && !art.isDestroy) {
       normalPlaybackRate = art.playbackRate || 1
       art.playbackRate = 2
+      longPressActive = true
     }
   }, 300)
 }
 
 function onLongPressEnd() {
   clearTimeout(longPressTimer)
-  if (art && !art.isDestroy && art.playbackRate === 2) {
+  if (longPressActive && art && !art.isDestroy) {
     art.playbackRate = normalPlaybackRate
   }
+  longPressActive = false
 }
+
+// 拦截右键/长按上下文菜单（部分安卓浏览器下载入口）
+function onContextMenu() {}
 
 function onDel() {
   showConfirm.value = true
@@ -195,6 +209,16 @@ async function confirmDel() {
   height: 100%;
   background: #000;
   overflow: hidden;
+  /* 禁用移动端长按弹出的保存/下载菜单 */
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.video-card :deep(video) {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .art-container {

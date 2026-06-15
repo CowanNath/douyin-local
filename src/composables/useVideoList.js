@@ -26,7 +26,11 @@ export function useVideoList() {
       ? videos.value.filter(v => favorites.value.includes(v.name))
       : videos.value
 
-    if (mode === 'random' && !settings.value.randomIncludeFav) {
+    // 顺序模式始终排除已收藏（收藏视频只在「收藏播放」模式出现）；
+    // 随机模式下根据 randomIncludeFav 开关决定是否包含收藏。
+    if (mode === 'sequential') {
+      list = list.filter(v => !favorites.value.includes(v.name))
+    } else if (mode === 'random' && !settings.value.randomIncludeFav) {
       list = list.filter(v => !favorites.value.includes(v.name))
     }
 
