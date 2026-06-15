@@ -145,7 +145,13 @@ watch(() => props.video.url, (url) => {
   if (url) createPlayer(url)
 })
 
-defineExpose({ art })
+defineExpose({
+  // 用 getter 而非直接暴露变量：art 会被重新赋值，
+  // 直接暴露捕获的是初始 null，父组件永远读不到新实例。
+  get art() {
+    return art
+  },
+})
 
 let longPressTimer = null
 let normalPlaybackRate = 1

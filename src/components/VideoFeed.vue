@@ -11,7 +11,7 @@
     <div class="feed-track" :style="trackStyle">
       <VideoCard
         v-for="(item, i) in pool"
-        :key="item.key"
+        :key="i"
         :ref="el => { if (i === 1) activeCardRef.value = el }"
         :video="item.video"
         :index="i"
@@ -57,7 +57,7 @@ const emit = defineEmits(['index-change'])
 
 const { orderedList, loading, fetchVideos } = useVideoList()
 const { isFavorite, toggle: toggleFav, fetchFavorites } = useFavorites()
-const { settings, update: updateSettings } = useSettings()
+const { settings, update: updateSettings, syncFromServer } = useSettings()
 
 const feedRef = ref(null)
 const activeCardRef = ref(null)
@@ -259,7 +259,7 @@ function onKeyCapture(e) {
 }
 
 onMounted(async () => {
-  await Promise.all([fetchVideos(), fetchFavorites()])
+  await Promise.all([syncFromServer(), fetchVideos(), fetchFavorites()])
   window.addEventListener('mousemove', onMouseMove)
   window.addEventListener('mouseup', onMouseUp)
   window.addEventListener('keydown', onKeyDown)
@@ -274,8 +274,12 @@ onBeforeUnmount(() => {
   document.removeEventListener('keydown', onKeyCapture, true)
 })
 
-watch(orderedList, () => {
-  currentIndex.value = 0
+watch(orderedList, (list) => {
+  // 收藏/取消收藏会重新拉取视频列表导致 orderedList 变化，
+  // 此时不应跳回开头，应尽量保持在当前视频上。
+  const currentName = pool.value[1]?.video?.name
+  const stayIdx = list.findIndex(v => v && v.name === currentName)
+  currentIndex.value = stayIdx >= 0 ? stayIdx : 0
   offset.value = -1
 })
 
