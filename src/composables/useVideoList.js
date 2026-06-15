@@ -22,19 +22,13 @@ export function useVideoList() {
 
   const orderedList = computed(() => {
     const mode = settings.value.playMode
+    // 收藏模式只显示收藏；顺序/随机模式都排除已收藏视频
+    // （收藏视频只在「收藏播放」模式出现）
     let list = mode === 'favorites'
       ? videos.value.filter(v => favorites.value.includes(v.name))
-      : videos.value
+      : videos.value.filter(v => !favorites.value.includes(v.name))
 
-    // 顺序模式始终排除已收藏（收藏视频只在「收藏播放」模式出现）；
-    // 随机模式下根据 randomIncludeFav 开关决定是否包含收藏。
-    if (mode === 'sequential') {
-      list = list.filter(v => !favorites.value.includes(v.name))
-    } else if (mode === 'random' && !settings.value.randomIncludeFav) {
-      list = list.filter(v => !favorites.value.includes(v.name))
-    }
-
-    if ((mode === 'random' || (mode === 'favorites' && settings.value.favShuffle))) {
+    if (mode === 'random' || (mode === 'favorites' && settings.value.favShuffle)) {
       if (shuffled.length !== list.length) {
         shuffled = shuffle(list)
       }

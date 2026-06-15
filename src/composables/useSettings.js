@@ -6,7 +6,6 @@ const defaults = {
   playMode: 'sequential',
   videoDir: '',
   videoDirLocked: false, // 服务器端由环境变量锁定时为 true
-  randomIncludeFav: true,
   favShuffle: false,
 }
 

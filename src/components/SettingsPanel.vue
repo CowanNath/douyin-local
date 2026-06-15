@@ -24,12 +24,6 @@
                 <span class="radio-label">收藏播放</span>
               </label>
             </div>
-            <label class="toggle-row" v-show="settings.playMode === 'random'">
-              <span>随机时包含已收藏视频</span>
-              <div class="toggle" :class="{ on: settings.randomIncludeFav }" @click="settings.randomIncludeFav = !settings.randomIncludeFav">
-                <div class="toggle-thumb"></div>
-              </div>
-            </label>
             <label class="toggle-row" v-show="settings.playMode === 'favorites'">
               <span>随机播放收藏</span>
               <div class="toggle" :class="{ on: settings.favShuffle }" @click="settings.favShuffle = !settings.favShuffle">
