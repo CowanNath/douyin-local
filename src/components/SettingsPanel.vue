@@ -46,13 +46,17 @@
                 v-model="dirInput"
                 placeholder="输入服务器上的视频目录路径"
                 class="dir-input"
+                :disabled="settings.videoDirLocked"
                 @keydown.enter="applyDir"
               />
-              <button class="dir-btn" @click="applyDir" :disabled="dirLoading">
+              <button class="dir-btn" @click="applyDir" :disabled="dirLoading || settings.videoDirLocked">
                 {{ dirLoading ? '...' : '应用' }}
               </button>
             </div>
             <p class="dir-hint" v-if="dirError">{{ dirError }}</p>
+            <p class="dir-hint locked-hint" v-else-if="settings.videoDirLocked">
+              由环境变量 VIDEO_DIR 指定，无法在此修改
+            </p>
           </section>
 
           <section class="setting-group">
@@ -298,6 +302,10 @@ async function handleImport(e) {
 }
 .dir-hint[style*="color"] {
   color: #ff6b6b;
+}
+
+.locked-hint {
+  color: rgba(255, 184, 77, 0.8) !important;
 }
 
 .fav-actions {

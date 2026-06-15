@@ -9,6 +9,7 @@ const PORT = process.env.PORT || 7077
 
 const DATA_DIR = process.env.DATA_DIR || path.resolve(__dirname, '..', 'data')
 const FAVORITES_FILE = path.join(DATA_DIR, 'favorites.json')
+const SETTINGS_FILE = path.join(DATA_DIR, 'settings.json')
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true })
 
 function loadFavorites() {
@@ -23,25 +24,56 @@ function saveFavorites(list) {
   fs.writeFileSync(FAVORITES_FILE, JSON.stringify(list, null, 2))
 }
 
+// ---- 持久化设置（videoDir 等）----
+// 优先级：VIDEO_DIR 环境变量 > 持久化文件 > 默认值
+// 当 VIDEO_DIR 被显式设置时，禁用通过 API 修改（容器化部署场景）
+const videoDirFromEnv = !!process.env.VIDEO_DIR
+
+function loadSettings() {
+  try {
+    return JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf-8'))
+  } catch {
+    return {}
+  }
+}
+
+function saveSettings(patch) {
+  const current = loadSettings()
+  fs.writeFileSync(SETTINGS_FILE, JSON.stringify({ ...current, ...patch }, null, 2))
+}
+
 const VIDEO_EXTENSIONS = new Set(['.mp4', '.webm', '.mov', '.mkv', '.avi', '.m4v'])
 
 app.use(express.json())
+
+// 校验 filename 不会逃出 baseDir（防止 ..%2F 等路径遍历攻击）
+function resolveSafe(baseDir, filename) {
+  const base = path.resolve(baseDir)
+  const target = path.resolve(base, filename)
+  if (target !== base && !target.startsWith(base + path.sep)) {
+    return null
+  }
+  return target
+}
 
 function getFavDir() {
   return path.join(videoDir, 'favourite')
 }
 
 function findVideoLocation(filename) {
-  if (fs.existsSync(path.join(videoDir, filename))) return 'root'
-  if (fs.existsSync(path.join(getFavDir(), filename))) return 'favourite'
+  const rootPath = resolveSafe(videoDir, filename)
+  const favPath = resolveSafe(getFavDir(), filename)
+  if (rootPath && fs.existsSync(rootPath)) return 'root'
+  if (favPath && fs.existsSync(favPath)) return 'favourite'
   return null
 }
 
 function moveToFavourite(filename) {
   const favDir = getFavDir()
   if (!fs.existsSync(favDir)) fs.mkdirSync(favDir, { recursive: true })
-  const src = path.join(videoDir, filename)
-  const dst = path.join(favDir, filename)
+  const src = resolveSafe(videoDir, filename)
+  const dst = resolveSafe(favDir, filename)
+  if (!src || !dst) return
   if (fs.existsSync(src) && !fs.existsSync(dst)) {
     fs.renameSync(src, dst)
   }
@@ -49,14 +81,19 @@ function moveToFavourite(filename) {
 
 function moveFromFavourite(filename) {
   const favDir = getFavDir()
-  const src = path.join(favDir, filename)
-  const dst = path.join(videoDir, filename)
+  const src = resolveSafe(favDir, filename)
+  const dst = resolveSafe(videoDir, filename)
+  if (!src || !dst) return
   if (fs.existsSync(src) && !fs.existsSync(dst)) {
     fs.renameSync(src, dst)
   }
 }
 
-let videoDir = process.env.VIDEO_DIR || path.resolve(__dirname, '..', 'videos')
+// 启动时确定初始 videoDir：环境变量优先，其次持久化文件，最后默认值
+let videoDir = process.env.VIDEO_DIR
+  || loadSettings().videoDir
+  || path.resolve(__dirname, '..', 'videos')
+videoDir = path.resolve(videoDir)
 
 app.get('/api/videos', (req, res) => {
   try {
@@ -84,7 +121,17 @@ app.get('/api/videos', (req, res) => {
   }
 })
 
+app.get('/api/settings', (req, res) => {
+  res.json({
+    videoDir,
+    videoDirLocked: videoDirFromEnv,
+  })
+})
+
 app.put('/api/settings/video-dir', (req, res) => {
+  if (videoDirFromEnv) {
+    return res.status(403).json({ error: '视频目录由环境变量 VIDEO_DIR 指定，无法通过界面修改' })
+  }
   const { dir } = req.body
   if (!dir || typeof dir !== 'string') {
     return res.status(400).json({ error: '需要提供有效的目录路径' })
@@ -96,6 +143,7 @@ app.put('/api/settings/video-dir', (req, res) => {
   }
 
   videoDir = resolved
+  saveSettings({ videoDir: resolved })
   res.json({ dir: videoDir })
 })
 
@@ -135,7 +183,10 @@ app.delete('/api/videos/:filename', (req, res) => {
   const filename = decodeURIComponent(req.params.filename)
   const sub = req.query.sub === 'favourite' ? 'favourite' : ''
   const baseDir = sub ? getFavDir() : videoDir
-  const filePath = path.join(baseDir, filename)
+  const filePath = resolveSafe(baseDir, filename)
+  if (!filePath) {
+    return res.status(400).json({ error: '非法的文件路径' })
+  }
   if (!fs.existsSync(filePath)) {
     return res.status(404).json({ error: '文件不存在' })
   }
@@ -152,8 +203,11 @@ app.get('/videos/:filename', (req, res) => {
   const filename = decodeURIComponent(req.params.filename)
   const sub = req.query.sub === 'favourite' ? 'favourite' : ''
   const baseDir = sub ? getFavDir() : videoDir
-  const filePath = path.join(baseDir, filename)
+  const filePath = resolveSafe(baseDir, filename)
 
+  if (!filePath) {
+    return res.status(400).send('Invalid path')
+  }
   if (!fs.existsSync(filePath)) {
     return res.status(404).send('Not found')
   }
@@ -198,8 +252,9 @@ function syncFavoritesOnStartup() {
   const favs = loadFavorites()
   let moved = 0
   for (const name of favs) {
-    const src = path.join(videoDir, name)
-    const dst = path.join(favDir, name)
+    const src = resolveSafe(videoDir, name)
+    const dst = resolveSafe(favDir, name)
+    if (!src || !dst) continue
     if (fs.existsSync(src) && !fs.existsSync(dst)) {
       fs.renameSync(src, dst)
       moved++
