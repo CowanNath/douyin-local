@@ -207,7 +207,7 @@ app.options('/videos/:filename', (req, res) => {
   res.sendStatus(204)
 })
 
-app.get('/videos/:filename', (req, res) => {
+app.all('/videos/:filename', (req, res) => {
   const filename = decodeURIComponent(req.params.filename)
   const sub = req.query.sub === 'favourite' ? 'favourite' : ''
   const baseDir = sub ? getFavDir() : videoDir
@@ -226,27 +226,45 @@ app.get('/videos/:filename', (req, res) => {
   const stat = fs.statSync(filePath)
   const range = req.headers.range
 
-  if (range) {
-    const parts = range.replace(/bytes=/, '').split('-')
-    const start = parseInt(parts[0], 10)
-    const end = parts[1] ? parseInt(parts[1], 10) : stat.size - 1
-    const chunkSize = end - start + 1
-
-    const fileStream = fs.createReadStream(filePath, { start, end })
-    res.writeHead(206, {
-      'Content-Range': `bytes ${start}-${end}/${stat.size}`,
-      'Accept-Ranges': 'bytes',
-      'Content-Length': chunkSize,
-      'Content-Type': 'video/mp4',
-    })
-    fileStream.pipe(res)
-  } else {
+  // HEAD 探测请求：只返回元数据，不读文件内容。
+  // 否则 createReadStream 会尝试流式传输整个文件，3GB+ 长视频会卡死数十秒。
+  // HTTP 规范允许 HEAD 响应携带 Content-Length 表示资源大小但不发送 body。
+  if (req.method === 'HEAD') {
     res.writeHead(200, {
       'Content-Length': stat.size,
+      'Accept-Ranges': 'bytes',
       'Content-Type': 'video/mp4',
     })
-    fs.createReadStream(filePath).pipe(res)
+    return res.end()
   }
+
+  // 无 Range 的 GET：返回开头一段（前 2MB），引导客户端改用 Range 请求。
+  // 不返回整个文件（长视频会很慢），也不违反 Content-Length 必须匹配 body 的约束。
+  if (!range) {
+    const headSize = Math.min(2 * 1024 * 1024, stat.size)
+    const fileStream = fs.createReadStream(filePath, { start: 0, end: headSize - 1 })
+    res.writeHead(206, {
+      'Content-Range': `bytes 0-${headSize - 1}/${stat.size}`,
+      'Accept-Ranges': 'bytes',
+      'Content-Length': headSize,
+      'Content-Type': 'video/mp4',
+    })
+    return fileStream.pipe(res)
+  }
+
+  const parts = range.replace(/bytes=/, '').split('-')
+  const start = parseInt(parts[0], 10)
+  const end = parts[1] ? parseInt(parts[1], 10) : stat.size - 1
+  const chunkSize = end - start + 1
+
+  const fileStream = fs.createReadStream(filePath, { start, end })
+  res.writeHead(206, {
+    'Content-Range': `bytes ${start}-${end}/${stat.size}`,
+    'Accept-Ranges': 'bytes',
+    'Content-Length': chunkSize,
+    'Content-Type': 'video/mp4',
+  })
+  fileStream.pipe(res)
 })
 
 const distPath = path.resolve(__dirname, '..', 'dist')
