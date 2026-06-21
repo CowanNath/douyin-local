@@ -107,15 +107,24 @@ function createPlayer(url) {
     art.video.currentTime = 0.5
   })
 
-  // 生成封面：从视频 0.5s 处截一帧。seeked 为主路径，canplay 为兜底
-  // （移动端 preload:metadata 下 seeked 可能因关键帧未下载而不触发或 videoWidth 为 0）
+  // 生成封面：从视频 0.5s 处截一帧。
+  // 触发路径：seeked（主）→ canplay/loadeddata（兜底）→ 定时重试（最终兜底）
+  // 移动端 preload:metadata 下 seeked 可能因关键帧未下载而不触发或 videoWidth 为 0
+  let posterRetried = false
   function capturePoster() {
     if (art.poster) return
     try {
       const canvas = document.createElement('canvas')
       const vw = art.video.videoWidth
       const vh = art.video.videoHeight
-      if (!vw || !vh) return
+      if (!vw || !vh) {
+        // videoWidth 还没就绪，安排一次延迟重试（首次进入常见此情况）
+        if (!posterRetried) {
+          posterRetried = true
+          setTimeout(capturePoster, 500)
+        }
+        return
+      }
       // 分辨率上限 640×360（比原 320×180 清晰一倍），竖屏视频按比例适配
       const scale = Math.min(640 / vw, 360 / vh, 1)
       canvas.width = vw * scale
@@ -129,6 +138,7 @@ function createPlayer(url) {
 
   art.on('video:seeked', capturePoster)
   art.on('video:canplay', capturePoster)
+  art.on('video:loadeddata', capturePoster)
 
   art.on('video:ended', () => {
     emit('ended')
