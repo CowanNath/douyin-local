@@ -92,6 +92,8 @@ function createPlayer(url) {
     lock: false,
     moreVideoAttr: {
       preload: 'metadata',
+      // 配合服务端 CORS 头，跨源访问时 canvas 截图才不会被污染导致 toDataURL 失败
+      crossorigin: 'anonymous',
       'webkit-playsinline': true,
       'x5-video-player-type': 'h5',
       'x5-video-player-fullscreen': false,
@@ -105,21 +107,28 @@ function createPlayer(url) {
     art.video.currentTime = 0.5
   })
 
-  art.on('video:seeked', () => {
-    if (!art.poster) {
-      try {
-        const canvas = document.createElement('canvas')
-        const vw = art.video.videoWidth
-        const vh = art.video.videoHeight
-        if (!vw || !vh) return
-        const scale = Math.min(320 / vw, 180 / vh, 1)
-        canvas.width = vw * scale
-        canvas.height = vh * scale
-        canvas.getContext('2d').drawImage(art.video, 0, 0, canvas.width, canvas.height)
-        art.poster = canvas.toDataURL('image/jpeg', 0.6)
-      } catch {}
+  // 生成封面：从视频 0.5s 处截一帧。seeked 为主路径，canplay 为兜底
+  // （移动端 preload:metadata 下 seeked 可能因关键帧未下载而不触发或 videoWidth 为 0）
+  function capturePoster() {
+    if (art.poster) return
+    try {
+      const canvas = document.createElement('canvas')
+      const vw = art.video.videoWidth
+      const vh = art.video.videoHeight
+      if (!vw || !vh) return
+      // 分辨率上限 640×360（比原 320×180 清晰一倍），竖屏视频按比例适配
+      const scale = Math.min(640 / vw, 360 / vh, 1)
+      canvas.width = vw * scale
+      canvas.height = vh * scale
+      canvas.getContext('2d').drawImage(art.video, 0, 0, canvas.width, canvas.height)
+      art.poster = canvas.toDataURL('image/jpeg', 0.8)
+    } catch (e) {
+      console.warn('[poster] 生成失败:', e?.message || e)
     }
-  })
+  }
+
+  art.on('video:seeked', capturePoster)
+  art.on('video:canplay', capturePoster)
 
   art.on('video:ended', () => {
     emit('ended')
@@ -235,6 +244,12 @@ async function confirmDel() {
   object-fit: contain;
   width: 100%;
   height: 100%;
+}
+
+/* Artplayer 默认 .art-poster 用 background-size:cover 会裁切封面，
+   改为 contain 与 video 的 object-fit 一致，完整显示 */
+.art-container :deep(.art-poster) {
+  background-size: contain;
 }
 
 .overlay-right {

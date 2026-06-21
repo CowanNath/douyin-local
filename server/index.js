@@ -199,6 +199,14 @@ app.delete('/api/videos/:filename', (req, res) => {
   })
 })
 
+// 允许跨源读取视频（手机端非同源访问时 canvas 截图需要，否则画布被污染 toDataURL 失败）
+app.options('/videos/:filename', (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*')
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS')
+  res.setHeader('Access-Control-Allow-Headers', 'Range')
+  res.sendStatus(204)
+})
+
 app.get('/videos/:filename', (req, res) => {
   const filename = decodeURIComponent(req.params.filename)
   const sub = req.query.sub === 'favourite' ? 'favourite' : ''
@@ -211,6 +219,9 @@ app.get('/videos/:filename', (req, res) => {
   if (!fs.existsSync(filePath)) {
     return res.status(404).send('Not found')
   }
+
+  // 统一设置 CORS 头，覆盖 206/200 所有响应分支
+  res.setHeader('Access-Control-Allow-Origin', '*')
 
   const stat = fs.statSync(filePath)
   const range = req.headers.range
